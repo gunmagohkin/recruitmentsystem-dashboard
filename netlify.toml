@@ -1,2 +1,5 @@
+[build]
+  publish = "."   //serve index.html from project root
+
 [functions]
-directory = "netlify/functions"
+  directory = "netlify/functions"
