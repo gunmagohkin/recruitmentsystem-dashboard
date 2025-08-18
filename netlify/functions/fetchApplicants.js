@@ -1,5 +1,5 @@
 // netlify/functions/fetchApplicants.js
-import fetch from "node-fetch";
+// import fetch from "node-fetch";
 
 export async function handler() {
   const domain = process.env.KINTONE_DOMAIN;
