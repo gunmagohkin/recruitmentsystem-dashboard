@@ -7,7 +7,7 @@ export async function handler() {
   const apiToken = process.env.KINTONE_API_TOKEN;
 
   try {
-    const url = `https://${domain}/k/v1/records.json?app=${appId}&query=order by Record_number desc limit 20`;
+    const url = `https://${domain}/k/v1/records.json?app=${appId}&query=order by Record_number desc`;
 
     const response = await fetch(url, {
       method: "GET",
