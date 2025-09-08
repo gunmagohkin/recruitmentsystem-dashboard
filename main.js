@@ -160,7 +160,7 @@ function downloadChart(chartId) {
   showAlert('Chart downloaded successfully!', 'success');
 }
 
-// Calculate analytics from current data
+// Calculate analytics from current data - WITH DEBUG
 function calculateAnalytics(data) {
   const analytics = {};
   
@@ -179,19 +179,39 @@ function calculateAnalytics(data) {
   analytics.avgPerPosition = analytics.uniquePositions > 0 ? 
     Math.round(analytics.totalApplicants / analytics.uniquePositions) : 0;
   
-  // Trend calculation (last 30 vs previous 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const sixtyDaysAgo = new Date();
-  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-  const recent = data.filter(r => new Date(r.createdAt) >= thirtyDaysAgo).length;
-  const previous = data.filter(r => {
+  // Month-over-month trend calculation
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  // This month (September 2025)
+  const thisMonthStart = new Date(currentYear, currentMonth, 1);
+  const thisMonthCount = data.filter(r => {
     const date = new Date(r.createdAt);
-    return date >= sixtyDaysAgo && date < thirtyDaysAgo;
+    return date >= thisMonthStart;
   }).length;
-
-  analytics.trend = previous > 0 ? (((recent - previous) / previous) * 100).toFixed(1) : 0;
+  
+  // Last month (August 2025)
+  const lastMonthStart = new Date(currentYear, currentMonth - 1, 1);
+  const lastMonthEnd = new Date(currentYear, currentMonth, 0); // Last day of previous month
+  const lastMonthCount = data.filter(r => {
+    const date = new Date(r.createdAt);
+    return date >= lastMonthStart && date <= lastMonthEnd;
+  }).length;
+  
+  console.log(`This month (${now.toLocaleDateString('en-US', {month: 'long'})}): ${thisMonthCount} applications`);
+  console.log(`Last month: ${lastMonthCount} applications`);
+  
+  // Calculate percentage change
+  if (lastMonthCount > 0) {
+    analytics.trend = (((thisMonthCount - lastMonthCount) / lastMonthCount) * 100).toFixed(1);
+  } else if (thisMonthCount > 0) {
+    analytics.trend = 100; // 100% increase from 0
+  } else {
+    analytics.trend = 0;
+  }
+  
+  console.log(`Month-over-month trend: ${analytics.trend}%`);
   
   return analytics;
 }
