@@ -8,5 +8,16 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gunmagohkin/recruitmentsystem-dashboard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gunmagohkin/recruitmentsystem-dashboard/issues"
+  },
+  "homepage": "https://github.com/gunmagohkin/recruitmentsystem-dashboard#readme",
+  "description": "",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  }
 }

@@ -1,3 +1,5 @@
+
+
 // Register the datalabels plugin
 Chart.register(ChartDataLabels);
 

@@ -1,205 +1,548 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>GKG | Recruitment Dashboard</title> 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
-  <link rel="shortcut icon" href="images/gkg.ico" type="image/x-icon">
-  <style>
-    .loading { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    .fade-in { animation: fadeIn 0.5s ease-in-out; }
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .metric-card { transition: all 0.3s ease; }
-    .metric-card:hover { transform: translateY(-2px); }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/gkg.ico" type="image/x-icon">
+    <title>GGPC Dashboard | Log in</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Tailwind Configuration -->
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Poppins', 'sans-serif'],
+            },
+          },
+        },
+      }
+    </script>
+
+    <style>
+        /* Canvas for background animation */
+        #line-animation-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Place it behind all other content */
+        }
+        /* Simple transition for the dropdown list */
+        .dropdown-menu {
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+        }
+        /* Ensure avatar images cover the area without being distorted */
+        .avatar-image {
+            object-fit: cover;
+        }
+        /* Blinking cursor for typewriter effect */
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 0.7s step-end infinite;
+        }
+
+        @keyframes blink {
+            from, to {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
+
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
-  <!-- Header -->
-  <header class="bg-white border-b shadow-sm p-4 flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <img src="images/GGPC logo.png" alt="Company Logo" class="h-12 w-auto">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-800">Recruitment Dashboard</h1>
-        <p class="text-sm text-gray-500">Real-time insights from Kintone</p>
-      </div>
-    </div>
+<body class="bg-gray-100 font-sans">
     
-    <!-- Controls -->
-    <div class="flex items-center gap-4">
-      <select id="timeFilter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
-        <option value="all">All Time</option>
-        <option value="7">Last 7 Days</option>
-        <option value="30">Last 30 Days</option>
-        <option value="90">Last 3 Months</option>
-        <option value="180">Last 6 Months</option>
-      </select>
-      
-      <button id="exportBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition">
-        📊 Export Report
-      </button>
-      
-      <button id="refreshBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition">
-        <span id="refreshIcon">🔄</span> Refresh
-      </button>
-      
-      <div id="lastUpdate" class="text-xs text-gray-500"></div>
-    </div>
-  </header>
+    <canvas id="line-animation-canvas"></canvas>
 
-  <!-- Alert Banner -->
-  <div id="alertBanner" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-4">
-    <div class="flex">
-      <div class="flex-shrink-0">⚠️</div>
-      <div class="ml-3">
-        <p class="text-sm text-yellow-700" id="alertMessage"></p>
-      </div>
-    </div>
-  </div>
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-2xl bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-12 relative">
+            
+            <!-- Logo Area -->
+            <div class="flex justify-center items-center mb-6">
+                <div class="w-56">
+                     <img src="images/GGPC logo.png" alt="GGPC Logo" onerror="this.style.display='none'">
+                </div>
+            </div>
 
-  <!-- Main Content -->
-  <main class="flex-grow container mx-auto p-6">
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="metric-card bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-lg transition">
-        <h2 class="text-gray-500 text-sm uppercase tracking-wide">Total Applicants</h2>
-        <p id="totalApplicants" class="text-4xl font-extrabold text-blue-600 mt-2">0</p>
-        <p id="applicantsTrend" class="text-xs text-gray-500 mt-1"></p>
-      </div>
-      
-      <div class="metric-card bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-lg transition">
-        <h2 class="text-gray-500 text-sm uppercase tracking-wide">Total Positions</h2>
-        <p id="totalPositions" class="text-4xl font-extrabold text-green-600 mt-2">0</p>
-        <p id="avgPerPosition" class="text-xs text-gray-500 mt-1"></p>
-      </div>
-      
-      <div class="metric-card bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-lg transition">
-        <h2 class="text-gray-500 text-sm uppercase tracking-wide">This Month</h2>
-        <p id="thisMonthCount" class="text-4xl font-extrabold text-purple-600 mt-2">0</p>
-        <p class="text-xs text-gray-500 mt-1">New Applications</p>
-      </div>
-      
-      <div class="metric-card bg-white rounded-2xl shadow-md p-6 text-center hover:shadow-lg transition">
-        <h2 class="text-gray-500 text-sm uppercase tracking-wide">Education Levels</h2>
-        <p id="educationCount" class="text-4xl font-extrabold text-orange-600 mt-2">0</p>
-        <p class="text-xs text-gray-500 mt-1">Unique Levels</p>
-      </div>
-    </div>
+            <!-- Header Text -->
+            <div class="text-center mb-8">
+                <h1 id="welcome-text" class="text-4xl font-bold text-gray-800 mb-3 h-12"></h1>
+                <p class="text-gray-500">Sign in to access your dashboard.</p>
+            </div>
 
-    <!-- Charts Row 1 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition fade-in">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-700">Applications by Position</h3>
-          <button class="text-gray-400 hover:text-gray-600 text-sm" onclick="downloadChart('positionChart')">📥 Download</button>
+            <form novalidate>
+                <!-- User Dropdown -->
+                <div class="relative mb-6">
+                    <label for="user-dropdown-button" class="block text-sm font-medium text-gray-600 mb-2">User</label>
+                    <input type="hidden" id="selected-user" name="username">
+                    
+                    <button type="button" id="user-dropdown-button" class="w-full flex items-center justify-between px-4 py-4 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="flex items-center">
+                            <img id="selected-user-avatar" src="https://placehold.co/32x32/E0E7FF/4F46E5?text=?" alt="user avatar" class="w-8 h-8 rounded-full mr-4 avatar-image">
+                            <span id="selected-user-name" class="text-lg">Select User</span>
+                        </div>
+                        <svg id="dropdown-chevron" class="w-5 h-5 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+
+                    <div id="user-dropdown-menu" class="dropdown-menu absolute w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 opacity-0 transform -translate-y-2 scale-95 pointer-events-none">
+                        <ul class="py-1">
+                            <!-- User options will be dynamically inserted here by JS -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-600 mb-2">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        </span>
+                        <input type="password" id="password" name="password" class="w-full pl-10 pr-10 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your password">
+                        <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700">
+                            <svg id="eye-open" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            <svg id="eye-closed" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 1.274-4.057 5.064-7 9.542-7 .847 0 1.67.127 2.452.364m-4.586 4.586a3 3 0 114.243 4.243M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Error Message Area -->
+                <div id="error-message" class="hidden text-red-500 text-sm mb-4 text-center font-medium">
+                    Invalid user or password. Please try again.
+                </div>
+
+                <!-- Login Button -->
+                <div>
+                    <button type="submit" id="login-button" class="w-full py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                        Log In
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading Overlay -->
+            <div id="loading-overlay" class="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center hidden">
+                <img src="images/GGPC logo.png" alt="Loading..." class="w-32 animate-bounce" onerror="this.style.display='none'">
+            </div>
         </div>
-        <div class="h-80 relative">
-          <canvas id="positionChart"></canvas>
-        </div>
-      </div>
-      
-      <div class="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition fade-in">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-700">Application Status Distribution</h3>
-          <button class="text-gray-400 hover:text-gray-600 text-sm" onclick="downloadChart('statusChart')">📥 Download</button>
-        </div>
-        <div class="h-80 relative">
-          <canvas id="statusChart"></canvas>
-        </div>
-      </div>
     </div>
 
-    <!-- Charts Row 2 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition fade-in">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-700">Education Background</h3>
-          <button class="text-gray-400 hover:text-gray-600 text-sm" onclick="downloadChart('educationChart')">📥 Download</button>
-        </div>
-        <div class="h-80 relative">
-          <canvas id="educationChart"></canvas>
-        </div>
-      </div>
-      
-      <div class="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition fade-in">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-lg font-semibold text-gray-700">Applications by Day of Week</h3>
-          <button class="text-gray-400 hover:text-gray-600 text-sm" onclick="downloadChart('dayChart')">📥 Download</button>
-        </div>
-        <div class="h-80 relative">
-          <canvas id="dayChart"></canvas>
-        </div>
-      </div>
-    </div>
+    <!-- Authentication Manager Script -->
+    <script>
+        // Authentication Manager Class
+        class AuthManager {
+            constructor() {
+                this.tokenKey = 'ggpc_auth_token';
+                this.userKey = 'ggpc_current_user';
+            }
 
-    <!-- Time Trend Chart -->
-    <div class="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition fade-in mb-8">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold text-gray-700">Application Trends Over Time</h3>
-        <div class="flex gap-2">
-          <button id="weeklyView" class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded" onclick="changeTrendView('weekly')">Weekly</button>
-          <button id="monthlyView" class="px-3 py-1 text-sm text-gray-600 rounded hover:bg-gray-100" onclick="changeTrendView('monthly')">Monthly</button>
-          <button class="text-gray-400 hover:text-gray-600 text-sm" onclick="downloadChart('trendChart')">📥 Download</button>
-        </div>
-      </div>
-      <div class="h-96 relative">
-        <canvas id="trendChart"></canvas>
-      </div>
-    </div>
+            // Store authentication token and user info
+            setAuth(token, user) {
+                localStorage.setItem(this.tokenKey, token);
+                localStorage.setItem(this.userKey, user);
+            }
 
-    <!-- Data Table -->
-    <div class="bg-white rounded-2xl shadow-md p-6 hover:shadow-lg transition fade-in">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold text-gray-700">Recent Applications</h3>
-        <div class="flex gap-2">
-          <input type="text" id="searchInput" placeholder="Search applicants..." 
-                 class="border border-gray-300 rounded px-3 py-1 text-sm w-48">
-          <select id="statusFilter" class="border border-gray-300 rounded px-3 py-1 text-sm">
-            <option value="">All Status</option>
-          </select>
-          <select id="positionFilter" class="border border-gray-300 rounded px-3 py-1 text-sm">
-            <option value="">All Positions</option>
-          </select>
-        </div>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full table-auto">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Education</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applied</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
-            </tr>
-          </thead>
-          <tbody id="applicantsTable" class="bg-white divide-y divide-gray-200">
-          </tbody>
-        </table>
-      </div>
-      <div class="mt-4 flex justify-between items-center text-sm text-gray-500">
-        <span id="tableInfo">Showing 0 of 0 applicants</span>
-        <div class="flex gap-2">
-          <button id="prevPage" class="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50" disabled>Previous</button>
-          <span id="pageInfo">Page 1 of 1</span>
-          <button id="nextPage" class="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50" disabled>Next</button>
-        </div>
-      </div>
-    </div>
-  </main>
+            // Get stored token
+            getToken() {
+                return localStorage.getItem(this.tokenKey);
+            }
 
-  <!-- Footer -->
-  <footer class="bg-white border-t text-gray-500 text-center p-4 text-sm">
-    © 2025 Recruitment System Dashboard – Powered by Kintone | 
-    <span id="dataStatus">Last updated: Never</span>
-  </footer>
+            // Get stored user
+            getUser() {
+                return localStorage.getItem(this.userKey);
+            }
 
-  <!-- JavaScript -->
-  <script src="main.js">
-    
-  </script>
+            // Clear authentication
+            clearAuth() {
+                localStorage.removeItem(this.tokenKey);
+                localStorage.removeItem(this.userKey);
+            }
+
+            // Check if user is authenticated
+            async isAuthenticated() {
+                const token = this.getToken();
+                
+                if (!token) {
+                    return false;
+                }
+
+                try {
+                    const response = await fetch('/.netlify/functions/verify-auth', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token }),
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        return true;
+                    } else {
+                        // Token is invalid or expired, clear it
+                        this.clearAuth();
+                        return false;
+                    }
+                } catch (error) {
+                    console.error('Auth verification error:', error);
+                    return false;
+                }
+            }
+
+            // Redirect to login if not authenticated
+            async requireAuth() {
+                const authenticated = await this.isAuthenticated();
+                
+                if (!authenticated) {
+                    // Store the current page they were trying to access
+                    localStorage.setItem('redirect_after_login', window.location.pathname);
+                    window.location.href = 'index.html';
+                    return false;
+                }
+                
+                return true;
+            }
+
+            // Logout function
+            logout() {
+                this.clearAuth();
+                window.location.href = 'index.html';
+            }
+
+            // Get redirect URL after login
+            getRedirectUrl() {
+                const redirectUrl = localStorage.getItem('redirect_after_login');
+                localStorage.removeItem('redirect_after_login');
+                return redirectUrl || 'dashboard.html';
+            }
+        }
+
+        // Create global auth manager instance
+        window.authManager = new AuthManager();
+    </script>
+
+    <!-- Vanilla JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if user is already logged in when page loads
+            if (window.authManager) {
+                const isAuthenticated = await window.authManager.isAuthenticated();
+                if (isAuthenticated) {
+                    // User is already logged in, redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                    return; // Exit early to prevent the rest of the page from loading
+                }
+            }
+
+             // --- Canvas Line Animation ---
+            const canvas = document.getElementById('line-animation-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            let particles = [];
+            const colors = ["#3b82f6"]; // Only use blue color
+
+            class Particle {
+                constructor(initialX, direction) {
+                    this.initialX = initialX;
+                    this.x = this.initialX;
+                    this.direction = direction;
+                    
+                    if (this.direction === 'down') {
+                        this.y = Math.random() * -canvas.height; // Start from above
+                        this.vy = Math.random() * 2 + 1; // Speed of falling
+                    } else { // direction is 'up'
+                        this.y = canvas.height + (Math.random() * canvas.height); // Start from below
+                        this.vy = -(Math.random() * 2 + 1); // Speed of rising
+                    }
+
+                    this.color = colors[0]; // Always use the first (and only) color
+                    this.length = Math.random() * 20 + 10;
+                }
+                update() {
+                    this.y += this.vy;
+                    
+                    // Reset logic based on direction
+                    if (this.direction === 'down' && this.y - this.length > canvas.height) {
+                        this.y = 0;
+                        this.x = this.initialX;
+                    } else if (this.direction === 'up' && this.y + this.length < 0) {
+                        this.y = canvas.height;
+                        this.x = this.initialX;
+                    }
+                }
+                draw() {
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    // Draw the tail in the opposite direction of movement
+                    const tailY = this.direction === 'down' ? this.y - this.length : this.y + this.length;
+                    ctx.lineTo(this.x, tailY);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+
+            function init() {
+                particles = [];
+                const numberOfParticles = 6; // Set exactly 6 lines
+                for (let i = 0; i < numberOfParticles; i++) {
+                    const segmentWidth = canvas.width / numberOfParticles;
+                    const initialX = segmentWidth * i + segmentWidth / 2;
+                    // First 3 go down, next 3 go up
+                    const direction = i < 3 ? 'down' : 'up';
+                    particles.push(new Particle(initialX, direction));
+                }
+            }
+
+            function animate() {
+                ctx.globalAlpha = 0.1; // Creates a trailing effect
+                ctx.fillStyle = '#f3f4f6'; // Match body bg-gray-100
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.globalAlpha = 1;
+
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+                requestAnimationFrame(animate);
+            }
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                init();
+            });
+
+            init();
+            animate();
+
+            // --- Typewriter Animation ---
+            const welcomeTextElement = document.getElementById('welcome-text');
+            const textArray = ["Welcome Back", "Log In"];
+            let textArrayIndex = 0;
+            let charIndex = 0;
+            let isDeleting = false;
+
+            function typeAndDelete() {
+                const currentText = textArray[textArrayIndex];
+                const typeSpeed = 120;
+                const deleteSpeed = 80;
+                const pauseTime = 1500;
+
+                welcomeTextElement.classList.add('typing-cursor');
+
+                if (isDeleting) {
+                    welcomeTextElement.textContent = currentText.substring(0, charIndex - 1);
+                    charIndex--;
+                    if (charIndex === 0) {
+                        isDeleting = false;
+                        textArrayIndex = (textArrayIndex + 1) % textArray.length;
+                        setTimeout(typeAndDelete, 500);
+                    } else {
+                        setTimeout(typeAndDelete, deleteSpeed);
+                    }
+                } else {
+                    welcomeTextElement.textContent = currentText.substring(0, charIndex + 1);
+                    charIndex++;
+                    if (charIndex === currentText.length) {
+                        isDeleting = true;
+                        setTimeout(typeAndDelete, pauseTime);
+                    } else {
+                        setTimeout(typeAndDelete, typeSpeed);
+                    }
+                }
+            }
+            
+            typeAndDelete();
+
+            // --- User data for populating the dropdown (NO PASSWORDS) ---
+            const users = [
+                { id: 'ivan_golosinda', name: 'Ivan Golosinda', avatar: 'images/ivan.png' },
+                { id: 'rhazel_joyce_mantor', name: 'Rhazel Joyce Mantor', avatar: 'images/joyce.jpg' },
+                { id: 'mildred_negranza', name: 'Mildred Negranza', avatar: 'images/mildred.jpg' },
+            ];
+
+            // --- Element References ---
+            const dropdownButton = document.getElementById('user-dropdown-button');
+            const dropdownMenu = document.getElementById('user-dropdown-menu');
+            const dropdownChevron = document.getElementById('dropdown-chevron');
+            const selectedUserAvatar = document.getElementById('selected-user-avatar');
+            const selectedUserName = document.getElementById('selected-user-name');
+            const selectedUserInput = document.getElementById('selected-user');
+            const passwordInput = document.getElementById('password');
+            const togglePasswordButton = document.getElementById('toggle-password');
+            const eyeOpenIcon = document.getElementById('eye-open');
+            const eyeClosedIcon = document.getElementById('eye-closed');
+            const loginForm = document.querySelector('form');
+            const errorMessage = document.getElementById('error-message');
+            const loginButton = document.getElementById('login-button');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            let errorTimeout;
+
+            // --- Function to Reset the Form to its Initial State ---
+            const resetFormState = () => {
+                loadingOverlay.classList.add('hidden');
+                loginButton.disabled = false;
+                passwordInput.value = '';
+            };
+            
+            // --- Populate User Dropdown ---
+            const userList = dropdownMenu.querySelector('ul');
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <a href="#" class="flex items-center px-4 py-3 text-gray-700 hover:bg-blue-50" data-userid="${user.id}">
+                        <img src="${user.avatar}" alt="${user.name}" class="w-8 h-8 rounded-full mr-4 avatar-image">
+                        <span class="text-lg">${user.name}</span>
+                    </a>
+                `;
+                userList.appendChild(li);
+            });
+
+            // --- Dropdown Toggle Logic ---
+            const toggleDropdown = () => {
+                dropdownMenu.classList.toggle('opacity-0');
+                dropdownMenu.classList.toggle('pointer-events-none');
+                dropdownMenu.classList.toggle('-translate-y-2');
+                dropdownMenu.classList.toggle('scale-95');
+                dropdownChevron.classList.toggle('rotate-180');
+            };
+
+            dropdownButton.addEventListener('click', toggleDropdown);
+
+            // --- Handle User Selection ---
+            userList.addEventListener('click', (e) => {
+                e.preventDefault();
+                const link = e.target.closest('a');
+                if (!link) return;
+
+                const userId = link.dataset.userid;
+                const selectedUser = users.find(u => u.id === userId);
+
+                if (selectedUser) {
+                    selectedUserName.textContent = selectedUser.name;
+                    selectedUserAvatar.src = selectedUser.avatar;
+                    selectedUserInput.value = selectedUser.id;
+                }
+                toggleDropdown();
+            });
+
+            // --- Close dropdown when clicking outside ---
+            window.addEventListener('click', (e) => {
+                if (!dropdownButton.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                    if (!dropdownMenu.classList.contains('opacity-0')) {
+                        toggleDropdown();
+                    }
+                }
+            });
+
+            // --- Password Visibility Toggle ---
+            togglePasswordButton.addEventListener('click', () => {
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                eyeOpenIcon.classList.toggle('hidden', isPassword);
+                eyeClosedIcon.classList.toggle('hidden', !isPassword);
+            });
+
+            // --- SECURE Login Form Submission Logic with Token Support ---
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                errorMessage.classList.add('hidden');
+                
+                const selectedUserId = selectedUserInput.value;
+                const enteredPassword = passwordInput.value;
+
+                // Validate form inputs
+                if (!selectedUserId) {
+                    errorMessage.textContent = 'Please select a user.';
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+
+                if (!enteredPassword) {
+                    errorMessage.textContent = 'Please enter a password.';
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+
+                // Show loading animation
+                loadingOverlay.classList.remove('hidden');
+                loginButton.disabled = true;
+
+                try {
+                    const response = await fetch('/.netlify/functions/login', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            userId: selectedUserId, 
+                            password: enteredPassword 
+                        }),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Store the authentication token and user info
+                        window.authManager.setAuth(result.token, result.user);
+                        
+                        console.log('Login successful, redirecting...');
+                        
+                        // Get redirect URL (in case user was redirected to login)
+                        const redirectUrl = window.authManager.getRedirectUrl();
+                        
+                        // On success, wait 2.5 seconds then redirect
+                        setTimeout(() => {
+                            window.location.href = redirectUrl;
+                        }, 2500);
+                    } else {
+                        // On failure, show error and reset the form
+                        console.log('Login failed:', result.message);
+                        errorMessage.textContent = result.message || 'Invalid user or password. Please try again.';
+                        errorMessage.classList.remove('hidden');
+                        errorTimeout = setTimeout(() => {
+                            errorMessage.classList.add('hidden');
+                        }, 5000);
+                        resetFormState();
+                    }
+                } catch (error) {
+                    // Handle network or server errors
+                    console.error('Login error:', error);
+                    
+                    let errorMsg = 'An error occurred. Please try again.';
+                    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                        errorMsg = 'Network error. Please check your connection.';
+                    }
+                    
+                    errorMessage.textContent = errorMsg;
+                    errorMessage.classList.remove('hidden');
+                    resetFormState();
+                }
+            });
+
+            // --- Event listener to reset form on page show (handles back button) ---
+            window.addEventListener('pageshow', (event) => {
+                if (event.persisted) {
+                    resetFormState();
+                }
+            });
+            
+            resetFormState();
+        });
+    </script>
+
 </body>
 </html>
